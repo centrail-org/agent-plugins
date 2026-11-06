@@ -1,0 +1,43 @@
+name: sync from npm
+# Moves the plugin to each stable `centrail` npm release (scripts/sync-from-npm.mjs),
+# validates the marketplace, commits to main and fast-forwards `release`, the branch
+# installed plugins update from.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: sync-from-npm
+  cancel-in-progress: false
+jobs:
+  sync:
+    if: github.repository == 'centrail-org/agent-plugins'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          # Whole history: pushing `release` needs its tip here to fast-forward it.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.22.1"
+      - id: sync
+        run: echo "version=$(node scripts/sync-from-npm.mjs)" >> "$GITHUB_OUTPUT"
+      - if: steps.sync.outputs.version != ''
+        run: |
+          npm i -g @anthropic-ai/claude-code
+          claude plugin validate . --strict
+          claude plugin validate plugins/centrail --strict
+      - if: steps.sync.outputs.version != ''
+        env:
+          VERSION: ${{ steps.sync.outputs.version }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m "release: centrail ${VERSION}"
+          git push origin HEAD:main
+          git push origin HEAD:refs/heads/release

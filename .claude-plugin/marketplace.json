@@ -3,7 +3,7 @@
   "name": "centrail",
   "metadata": {
     "description": "Centrail — local AI coding-agent usage, attributed to repos and commits.",
-    "version": "0.12.1",
+    "version": "0.13.0",
     "pluginRoot": "plugins"
   },
   "owner": {
